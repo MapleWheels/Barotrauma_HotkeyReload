@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Reference Include="0Harmony">
+        <HintPath>C:\Users\Narayan\OneDrive\Documents\Personal\Projects\Games_Modding\Barotrauma\For_LuaForBarotrauma\Refs\0Harmony.dll</HintPath>
+      </Reference>
+      <Reference Include="Barotrauma">
+        <HintPath>C:\Users\Narayan\OneDrive\Documents\Personal\Projects\Games_Modding\Barotrauma\For_LuaForBarotrauma\Refs\Barotrauma-nstrip.dll</HintPath>
+      </Reference>
+      <Reference Include="Mono.Cecil">
+        <HintPath>C:\Users\Narayan\OneDrive\Documents\Personal\Projects\Games_Modding\Barotrauma\For_LuaForBarotrauma\Refs\Mono.Cecil.dll</HintPath>
+      </Reference>
+      <Reference Include="MonoGame.Framework.Windows.NetStandard">
+        <HintPath>C:\Users\Narayan\OneDrive\Documents\Personal\Projects\Games_Modding\Barotrauma\For_LuaForBarotrauma\Refs\MonoGame.Framework.Windows.NetStandard.dll</HintPath>
+      </Reference>
+      <Reference Include="MonoMod.Common">
+        <HintPath>C:\Users\Narayan\OneDrive\Documents\Personal\Projects\Games_Modding\Barotrauma\For_LuaForBarotrauma\Refs\MonoMod.Common.dll</HintPath>
+      </Reference>
+      <Reference Include="XNATypes">
+        <HintPath>C:\Users\Narayan\OneDrive\Documents\Personal\Projects\Games_Modding\Barotrauma\For_LuaForBarotrauma\Refs\XNATypes.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
