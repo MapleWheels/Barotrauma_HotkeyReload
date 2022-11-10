@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using Barotrauma;
 using Barotrauma.Extensions;
 using Barotrauma.Items.Components;
@@ -41,18 +42,19 @@ public static class Reloader
                     //yes--item condition 0?
                     //yes--remove item, mark replacement type preference
                     prefItemPrefab = item.Prefab;
-                    if (!charInv.TryPutItem(item, Character.Controlled))
+                    if (!charInv.TryPutItem(item, Character.Controlled, new[]{ InvSlotType.Any }))
                     {
                         DebugConsole.LogError($"HK_Reload: Unable to remove depleted item from weapon/tool. Cannot continue");
                         continue;
                     }
                 }
-                
+
                 //if empty find a suitable replacement
                 if (heldItem.OwnInventory.GetItemAt(slotIndex) is null)
                 {
                     if (Character.Controlled.Inventory.FindCompatWithPreference(
-                            prefItemPrefab, slotIndex, item1 => item1.Condition > 0 && item1.ParentInventory != heldItem.OwnInventory) is { } it)
+                            prefItemPrefab, slotIndex, item1 => 
+                                item1.Condition > 0) is { } it)
                     {
                         if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
                         {
@@ -62,7 +64,7 @@ public static class Reloader
                     }
                     else
                     {
-                        DebugConsole.LogError($"HK_Reload: Unable to find replacement item to put into item {heldItem.Name} in slot#{slotIndex}. Skipping this slot.");
+                        DebugConsole.LogError($"HK_Reload: Unable to find replacement item-Prefab {prefItemPrefab?.Name} to put into item {heldItem.Name} in slot#{slotIndex}. Skipping this slot.");
                         continue;
                     }
                 }
@@ -95,18 +97,24 @@ public static class Reloader
     
     static List<Item> FindAllCompatWithPreference(this Inventory container, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
-        List<Item> compat = new List<Item>();
-        List<Item> pref = new List<Item>();
+        List<Item> compat = new();
+        List<Item> pref = new();
         
-        foreach (Item item in container.FindAllItems(predicate, true))
+        List<Item> iterList = new();
+        iterList.BuildIterList(container.AllItemsMod, true, item =>
+            item.Condition > 0f
+            && (predicate?.Invoke(item) ?? true)
+        );
+        foreach (Item item in iterList)
         {
+            DebugConsole.LogError($"FindCompatAll: {item.Name}");
             if (!item.CompatibleWithInv(container, slotIndex))
                 continue;
-            if (prefab is null || prefab == item.Prefab) 
+            if (prefab is null || item.Prefab == prefab)
                 pref.Add(item);
-            compat.Add(item);
+            else
+                compat.Add(item);
         }
-
         return pref.Any() ? pref : compat;
     }
     
@@ -114,8 +122,14 @@ public static class Reloader
     static Item? FindCompatWithPreference(this Inventory container, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
         Item? foundItem = null;
-        foreach (Item item in container.FindAllItems(predicate, true))
+        List<Item> iterList = new();
+        iterList.BuildIterList(container.AllItemsMod, true, item =>
+            item.Condition > 0f
+            && (predicate?.Invoke(item) ?? true)
+            );
+        foreach (Item item in iterList)
         {
+            DebugConsole.LogError($"FindCompat: {item.Name}");
             if (!item.CompatibleWithInv(container, slotIndex))
                 continue;
             if (prefab is null || prefab == item.Prefab) 
@@ -146,41 +160,23 @@ public static class Reloader
         containerParent.GetComponent<ItemContainer>()?.CanBeContained(item, slotIndex) ?? false;
     static bool CompatibleWithInv(this Item item, Item containerParent) =>
         containerParent.GetComponent<ItemContainer>()?.CanBeContained(item) ?? false;
-    
-    static bool IncludeInUsableItemList(Item item, Item heldItem, int slot) => 
-        item.Condition > 0.0f
-        && item != heldItem
-        && item.CompatibleWithInv(heldItem, slot);
-    
-    
-    static bool NestedInventoryHelper(Item item, Item heldItem, List<Item> list, int slot, int nestlevel = 1)
+
+    static List<Item> BuildIterList(this List<Item> list, IEnumerable<Item> sourceList, bool recursive = true, Func<Item, bool>? predicate = null)
     {
-        //it does not have an inventory, exit out
-        if (item.OwnInventory is null || item.OwnInventory.Capacity < 1)
-            return true;
-
-        //is it something that needs items to function (ie. a tool)? Exclude it.
-        if (item.GetComponent<ItemContainer>()?.requiredItems.Any() ?? false)
-            return false;
-
-        DebugConsole.LogError($"N-level {nestlevel}: ContainerName {item.Name} | ContainerCond {item.Condition}");
-
-        //it's a backpack/bag, let's search it
-        foreach (Item item1 in item.OwnInventory.AllItemsMod)
+        foreach (Item item in sourceList)
         {
-            DebugConsole.LogError($"N-level {nestlevel}: SubItem {item1.Name} | SubCond {item1.Condition}");
-
-            if (IncludeInUsableItemList(item1, heldItem))
-            {
-                DebugConsole.LogError($"N-level {nestlevel}: Added {item1.Name}");
-                list.Add(item1);
-            }
-            else if (item1 != heldItem)
-            {
-                DebugConsole.LogError($"N-level {nestlevel}: FAILED {item1.Name}");
-                NestedInventoryHelper(item1, heldItem, list, slot, nestlevel + 1);
-            }
+            if (predicate is null || predicate(item))
+                list.Add(item);
+            if (recursive && item.OwnInventory.Capacity > 0)
+                list.BuildIterList(item.OwnInventory.AllItemsMod, true, predicate);
         }
-        return false;   //don't add backpack/bag to list
+        return list;
     }
+    
+    #warning TODO: Re-implement usage of method in checks.
+    static bool IncludeInUsableItemList(this Item item, Item heldItem, int slot) => 
+        item.Condition > 0.0f //usable
+        && item != heldItem  //is not self
+        && item.ParentInventory != heldItem.OwnInventory //is not in tool/weapon already
+        && item.CompatibleWithInv(heldItem, slot);  //slot compat
 }
