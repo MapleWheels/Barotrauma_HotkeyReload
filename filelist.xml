@@ -2,4 +2,5 @@
 <contentpackage name="Hotkey Reload-Swap" modversion="0.1" corepackage="false">
     <Other file="%ModDir%/CSharp/RunConfig.xml"/>
     <Other file="%ModDir%/CSharp/Client/Bootloader.cs" />
+    <Other file="%ModDir%/CSharp/Client/Bootloader.cs" />
 </contentpackage>

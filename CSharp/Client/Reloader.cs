@@ -15,23 +15,28 @@ public static class Reloader
     public static void ReloadHeldItems()
     {
         //?? check if in-game && single player or host in multiplayer and we're not switching maps
-        if (GameMain.Client == null || !GameMain.GameSession.IsRunning || Screen.Selected is SubEditorScreen || Submarine.Unloading)
-             return;
+        if (!GameMain.GameSession.IsRunning
+            || Screen.Selected is SubEditorScreen
+            || Submarine.Unloading)
+            return;
         
         //Check if inventory available
-        if (Character.Controlled.Inventory == null)
+        if (Character.Controlled.Inventory is null)
             return;
-
+        
         var charInv = Character.Controlled.Inventory;
 
         List<Item> usableItems = new();
         foreach (Item heldItem in Character.Controlled.HeldItems.Where(i=>i.OwnInventory != null && i.OwnInventory.Capacity > 0))
         {
             usableItems.Clear();
-            usableItems.AddRange(charInv.AllItemsMod.Where(
-                item => IncludeInUsableItemList(item, heldItem)
-                        && NestedInventoryHelper(item, heldItem, usableItems)
-            ));
+            foreach (Item item in charInv.AllItemsMod)
+            {
+                if (IncludeInUsableItemList(item, heldItem) 
+                    && NestedInventoryHelper(item, heldItem, usableItems)
+                    )
+                    usableItems.Add(item);
+            }
 
             for (int slotIndex = 0; slotIndex < heldItem.OwnInventory.Capacity; slotIndex++)
             {
@@ -52,8 +57,21 @@ public static class Reloader
                             break;
                         }
                     }
+                    
+#warning debug
+                    foreach (Item item in usableItems)
+                    {
+                        DebugConsole.LogError($"Item2: {item.Name}");
+                    }
+                    
                     if (exitIter)
                         continue;
+                }
+                
+#warning debug
+                foreach (Item item in usableItems)
+                {
+                    DebugConsole.LogError($"Item3: {item.Name}");
                 }
                 
                 if (heldItem.OwnInventory.GetItemAt(slotIndex) is { Prefab: { } prefab } containedItem)
@@ -62,9 +80,13 @@ public static class Reloader
                     {
                         foreach (Item item in usableItems.ToList()) //allow modifications, consider for;RemoveAt(ind) instead for speed.
                         {
+#warning debug
+                            DebugConsole.LogError($"Item4: {item.Name}");
                             if (item.Prefab != containedItem.Prefab)    //fast out
                                 continue;
-                                
+#warning debug
+                            DebugConsole.LogError($"Item5: {item.Name}");
+                            
                             if (heldItem.OwnInventory.TryPutItem(item, slotIndex, true, false, Character.Controlled))
                             {
                                 usableItems.Remove(item);
@@ -107,17 +129,22 @@ public static class Reloader
         
         static bool NestedInventoryHelper(Item item, Item heldItem, List<Item> list)
         {
+            //it does not have an inventory, exit out
             if (item.OwnInventory is null || item.OwnInventory.Capacity < 1)
                 return true;
-            
+
+            //is it something that needs items to function (ie. a tool)? Exclude it.
             if (item.GetComponent<ItemContainer>()?.requiredItems.Any() ?? false)
                 return false;
-            
-            list.AddRange(item.OwnInventory.AllItemsMod.Where(
-                    item => IncludeInUsableItemList(item, heldItem)
-                            && NestedInventoryHelper(item, heldItem, list)
-                ));
-            return false;
+
+            //it's a backpack/bag, let's search it
+            foreach (Item item1 in item.OwnInventory.AllItemsMod)
+            {
+                if (IncludeInUsableItemList(item1, heldItem) 
+                    && NestedInventoryHelper(item1, heldItem, list))
+                    list.Add(item1);
+            }
+            return false;   //don't add backpack/bag to list
         }
 
         static bool IncludeInUsableItemList(Item item, Item heldItem) =>
