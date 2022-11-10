@@ -25,173 +25,162 @@ public static class Reloader
             return;
         
         var charInv = Character.Controlled.Inventory;
-
-        List<Item> usableItems = new();
-        foreach (Item heldItem in Character.Controlled.HeldItems.Where(i=>i.OwnInventory != null && i.OwnInventory.Capacity > 0))
+        
+        foreach (Item heldItem in Character.Controlled.HeldItems
+                     .Where(i=>i.OwnInventory is {
+                         Capacity: > 0,
+                         Locked: false 
+                     }))
         {
-            usableItems.Clear();
-            foreach (Item item in charInv.AllItemsMod)
-            {
-                DebugConsole.LogError($"N-level 0: MainItem {item.Name} | MainCond {item.Condition}");
-                if (IncludeInUsableItemList(item, heldItem))
-                {
-                    DebugConsole.LogError($"N-level 0: Added {item.Name}");
-                    usableItems.Add(item);
-                }
-                else if (item != heldItem)
-                {
-                    DebugConsole.LogError($"N-level 0: FAILED {item.Name}");
-                    NestedInventoryHelper(item, heldItem, usableItems);
-                }
-            }
-#warning debug
-            DebugConsole.LogError($"Step 1 reached.");
-            foreach (Item item in usableItems)
-            {
-                DebugConsole.LogError($"Item1: {item.Name}");
-            }
-
             for (int slotIndex = 0; slotIndex < heldItem.OwnInventory.Capacity; slotIndex++)
             {
-                bool exitIter = false;
-                //There's no item in the slot, so get one in there
+                ItemPrefab? prefItemPrefab = null;
+                //item exists in inventory?
+                if (heldItem.OwnInventory.GetItemAt(slotIndex) is Item {Condition: <=0} item)
+                {
+                    //yes--item condition 0?
+                    //yes--remove item, mark replacement type preference
+                    prefItemPrefab = item.Prefab;
+                    if (!charInv.TryPutItem(item, Character.Controlled))
+                    {
+                        DebugConsole.LogError($"HK_Reload: Unable to remove depleted item from weapon/tool. Cannot continue");
+                        continue;
+                    }
+                }
+                
+                //if empty find a suitable replacement
                 if (heldItem.OwnInventory.GetItemAt(slotIndex) is null)
                 {
-                    foreach (Item item in usableItems.ToList()) //allow modifications, consider for;RemoveAt(ind) instead for speed.
+                    if (Character.Controlled.Inventory.FindCompatWithPreference(
+                            prefItemPrefab, slotIndex, item1 => item1.Condition > 0 && item1.ParentInventory != heldItem.OwnInventory) is { } it)
                     {
-                        if (!heldItem.OwnInventory.CanBePutInSlot(item, slotIndex)) //fast out
-                            continue;
-
-                        if (heldItem.OwnInventory.TryPutItem(item, slotIndex, false, false, Character.Controlled))
+                        if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
                         {
-                            usableItems.Remove(item);
-                            if (item.Prefab.MaxStackSize == 1)  //replacement complete
-                                exitIter = true;
-                            break;
+                            DebugConsole.LogError($"HK_Reload: Unable to insert replacement item {it.Name} into item {heldItem.Name} in slot#{slotIndex}. Skipping this slot.");
+                            continue;
                         }
                     }
-                    
-#warning debug
-                    foreach (Item item in usableItems)
+                    else
                     {
-                        DebugConsole.LogError($"Item2: {item.Name}");
-                    }
-                    
-                    if (exitIter)
+                        DebugConsole.LogError($"HK_Reload: Unable to find replacement item to put into item {heldItem.Name} in slot#{slotIndex}. Skipping this slot.");
                         continue;
-                }
-                
-#warning debug
-                foreach (Item item in usableItems)
-                {
-                    DebugConsole.LogError($"Item3: {item.Name}");
-                }
-                
-                if (heldItem.OwnInventory.GetItemAt(slotIndex) is { Prefab: { } prefab } containedItem)
-                {
-                    if (prefab.MaxStackSize == 1 && containedItem.Condition <= float.Epsilon)
-                    {
-                        foreach (Item item in usableItems.ToList()) //allow modifications, consider for;RemoveAt(ind) instead for speed.
-                        {
-#warning debug
-                            DebugConsole.LogError($"Item4: {item.Name}");
-                            if (item.Prefab != containedItem.Prefab)    //fast out
-                                continue;
-#warning debug
-                            DebugConsole.LogError($"Item5: {item.Name}");
-                            
-                            if (heldItem.OwnInventory.TryPutItem(item, slotIndex, true, false, Character.Controlled))
-                            {
-                                usableItems.Remove(item);
-                                exitIter = true;
-                                break;
-                            }
-                        }
-                        
-                        if (exitIter)
-                            continue;
                     }
-
-                    if (prefab.MaxStackSize > 1)
+                }
+                
+                //is it not full stack?
+                if (heldItem.OwnInventory.Capacity > 1
+                    // ReSharper disable once HeapView.ClosureAllocation
+                    && heldItem.OwnInventory.GetItemAt(slotIndex) is { } it1)
+                {
+                    int diff = heldItem.GetSlotMaxStackSize(it1, slotIndex) -
+                               heldItem.OwnInventory.GetItemsAt(slotIndex).Count();
+                    List<Item> refillItems = Character.Controlled.Inventory.FindAllCompatWithPreference(it1.Prefab, slotIndex,
+                        item1 => item1.Condition > 0 
+                                 && item1.Prefab == it1.Prefab
+                                 && item1.ParentInventory != heldItem.OwnInventory);
+                    foreach (Item refillItem in refillItems)
                     {
-                        foreach (Item item in usableItems.ToList())
-                        {
-                            if (item.Prefab != containedItem.Prefab)    //fast out
-                                continue;
-                            
-                            if (heldItem.OwnInventory.TryPutItem(item, slotIndex, false, false, Character.Controlled))
-                            {
-                                usableItems.Remove(item);
-                                if (heldItem.OwnInventory.GetItemsAt(slotIndex)?.Count() >= containedItem.Prefab.MaxStackSize)
-                                {
-                                    exitIter = true;
-                                    break;
-                                }
-                            }
-                            
-                            
-                        }
-                        
-                        if (exitIter)
-                            continue;
+                        if (diff < 1)
+                            break;
+                        if (heldItem.OwnInventory.TryPutItem(refillItem, slotIndex, false, true, Character.Controlled))
+                            diff -= 1;
                     }
                 }
             }
+            
         }
-
         
-        static bool NestedInventoryHelper(Item item, Item heldItem, List<Item> list, int nestlevel = 1)
+    }
+
+    
+    static List<Item> FindAllCompatWithPreference(this Inventory container, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
+    {
+        List<Item> compat = new List<Item>();
+        List<Item> pref = new List<Item>();
+        
+        foreach (Item item in container.FindAllItems(predicate, true))
         {
-            //it does not have an inventory, exit out
-            if (item.OwnInventory is null || item.OwnInventory.Capacity < 1)
-                return true;
-
-            //is it something that needs items to function (ie. a tool)? Exclude it.
-            if (item.GetComponent<ItemContainer>()?.requiredItems.Any() ?? false)
-                return false;
-
-            DebugConsole.LogError($"N-level {nestlevel}: ContainerName {item.Name} | ContainerCond {item.Condition}");
-
-            //it's a backpack/bag, let's search it
-            foreach (Item item1 in item.OwnInventory.AllItemsMod)
-            {
-                DebugConsole.LogError($"N-level {nestlevel}: SubItem {item1.Name} | SubCond {item1.Condition}");
-
-                if (IncludeInUsableItemList(item1, heldItem))
-                {
-                    DebugConsole.LogError($"N-level {nestlevel}: Added {item1.Name}");
-                    list.Add(item1);
-                }
-                else if (item1 != heldItem)
-                {
-                    DebugConsole.LogError($"N-level {nestlevel}: FAILED {item1.Name}");
-                    NestedInventoryHelper(item1, heldItem, list, nestlevel + 1);
-                }
-            }
-            return false;   //don't add backpack/bag to list
+            if (!item.CompatibleWithInv(container, slotIndex))
+                continue;
+            if (prefab is null || prefab == item.Prefab) 
+                pref.Add(item);
+            compat.Add(item);
         }
 
-        static bool IncludeInUsableItemList(Item item, Item heldItem)
+        return pref.Any() ? pref : compat;
+    }
+    
+    
+    static Item? FindCompatWithPreference(this Inventory container, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
+    {
+        Item? foundItem = null;
+        foreach (Item item in container.FindAllItems(predicate, true))
         {
-            if (item.Condition > 0f)
-            {
-                DebugConsole.LogError($"ItemCh.Cond: {item.Name}");
-            }
-
-            if (item != heldItem)
-            {
-                DebugConsole.LogError($"ItemCh.HeldItem: {item.Name} | held: {heldItem.Name}");
-            }
-
-            if (heldItem.OwnInventory.CanBePut(item))
-            {
-                DebugConsole.LogError($"ItemCh.CanPut: {item.Name} | held: {heldItem.Name}");
-            }
-
-#warning TODO: Find a replacement for CanBePut()
-            return item.Condition > 0.0f
-                   && item != heldItem
-                   && heldItem.OwnInventory.CanBePut(item); //needs to be replaced as it returns false if there is an item in the slot.
+            if (!item.CompatibleWithInv(container, slotIndex))
+                continue;
+            if (prefab is null || prefab == item.Prefab) 
+                return item;
+            foundItem = item;
         }
+        return foundItem;
+    }
+
+    static int GetSlotMaxStackSize(this Item containerItem, Item storableItem, int slotIndex) =>
+        containerItem.GetComponent<ItemContainer>() is { } container 
+        && container.CanBeContained(storableItem, slotIndex)
+            ? Math.Min(container.MaxStackSize, storableItem.Prefab.MaxStackSize)
+            : 0;
+
+    static bool CompatibleWithInv(this Item item, Inventory container, int slotIndex = -1) => container.Owner switch
+        {
+            Item ownerItem when slotIndex == -1 => CompatibleWithInv(item, ownerItem),
+            Item ownerItem => CompatibleWithInv(item, ownerItem, slotIndex),
+            Character character when slotIndex == -1 => CompatibleWithInv(item, character),
+            Character character => CompatibleWithInv(item, character, slotIndex),
+            _ => false
+        };
+
+    static bool CompatibleWithInv(this Item item, Character character) => character.Inventory.CanBePut(item);
+    static bool CompatibleWithInv(this Item item, Character character, int slotIndex) => character.Inventory.CanBePutInSlot(item, slotIndex);
+    static bool CompatibleWithInv(this Item item, Item containerParent, int slotIndex) =>
+        containerParent.GetComponent<ItemContainer>()?.CanBeContained(item, slotIndex) ?? false;
+    static bool CompatibleWithInv(this Item item, Item containerParent) =>
+        containerParent.GetComponent<ItemContainer>()?.CanBeContained(item) ?? false;
+    
+    static bool IncludeInUsableItemList(Item item, Item heldItem, int slot) => 
+        item.Condition > 0.0f
+        && item != heldItem
+        && item.CompatibleWithInv(heldItem, slot);
+    
+    
+    static bool NestedInventoryHelper(Item item, Item heldItem, List<Item> list, int slot, int nestlevel = 1)
+    {
+        //it does not have an inventory, exit out
+        if (item.OwnInventory is null || item.OwnInventory.Capacity < 1)
+            return true;
+
+        //is it something that needs items to function (ie. a tool)? Exclude it.
+        if (item.GetComponent<ItemContainer>()?.requiredItems.Any() ?? false)
+            return false;
+
+        DebugConsole.LogError($"N-level {nestlevel}: ContainerName {item.Name} | ContainerCond {item.Condition}");
+
+        //it's a backpack/bag, let's search it
+        foreach (Item item1 in item.OwnInventory.AllItemsMod)
+        {
+            DebugConsole.LogError($"N-level {nestlevel}: SubItem {item1.Name} | SubCond {item1.Condition}");
+
+            if (IncludeInUsableItemList(item1, heldItem))
+            {
+                DebugConsole.LogError($"N-level {nestlevel}: Added {item1.Name}");
+                list.Add(item1);
+            }
+            else if (item1 != heldItem)
+            {
+                DebugConsole.LogError($"N-level {nestlevel}: FAILED {item1.Name}");
+                NestedInventoryHelper(item1, heldItem, list, slot, nestlevel + 1);
+            }
+        }
+        return false;   //don't add backpack/bag to list
     }
 }
