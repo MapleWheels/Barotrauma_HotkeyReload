@@ -32,10 +32,23 @@ public static class Reloader
             usableItems.Clear();
             foreach (Item item in charInv.AllItemsMod)
             {
-                if (IncludeInUsableItemList(item, heldItem) 
-                    && NestedInventoryHelper(item, heldItem, usableItems)
-                    )
+                DebugConsole.LogError($"N-level 0: MainItem {item.Name} | MainCond {item.Condition}");
+                if (IncludeInUsableItemList(item, heldItem))
+                {
+                    DebugConsole.LogError($"N-level 0: Added {item.Name}");
                     usableItems.Add(item);
+                }
+                else if (item != heldItem)
+                {
+                    DebugConsole.LogError($"N-level 0: FAILED {item.Name}");
+                    NestedInventoryHelper(item, heldItem, usableItems);
+                }
+            }
+#warning debug
+            DebugConsole.LogError($"Step 1 reached.");
+            foreach (Item item in usableItems)
+            {
+                DebugConsole.LogError($"Item1: {item.Name}");
             }
 
             for (int slotIndex = 0; slotIndex < heldItem.OwnInventory.Capacity; slotIndex++)
@@ -127,7 +140,7 @@ public static class Reloader
         }
 
         
-        static bool NestedInventoryHelper(Item item, Item heldItem, List<Item> list)
+        static bool NestedInventoryHelper(Item item, Item heldItem, List<Item> list, int nestlevel = 1)
         {
             //it does not have an inventory, exit out
             if (item.OwnInventory is null || item.OwnInventory.Capacity < 1)
@@ -137,19 +150,48 @@ public static class Reloader
             if (item.GetComponent<ItemContainer>()?.requiredItems.Any() ?? false)
                 return false;
 
+            DebugConsole.LogError($"N-level {nestlevel}: ContainerName {item.Name} | ContainerCond {item.Condition}");
+
             //it's a backpack/bag, let's search it
             foreach (Item item1 in item.OwnInventory.AllItemsMod)
             {
-                if (IncludeInUsableItemList(item1, heldItem) 
-                    && NestedInventoryHelper(item1, heldItem, list))
+                DebugConsole.LogError($"N-level {nestlevel}: SubItem {item1.Name} | SubCond {item1.Condition}");
+
+                if (IncludeInUsableItemList(item1, heldItem))
+                {
+                    DebugConsole.LogError($"N-level {nestlevel}: Added {item1.Name}");
                     list.Add(item1);
+                }
+                else if (item1 != heldItem)
+                {
+                    DebugConsole.LogError($"N-level {nestlevel}: FAILED {item1.Name}");
+                    NestedInventoryHelper(item1, heldItem, list, nestlevel + 1);
+                }
             }
             return false;   //don't add backpack/bag to list
         }
 
-        static bool IncludeInUsableItemList(Item item, Item heldItem) =>
-            item.Condition > float.Epsilon
-            && item != heldItem
-            && heldItem.OwnInventory.CanBePut(item);
+        static bool IncludeInUsableItemList(Item item, Item heldItem)
+        {
+            if (item.Condition > 0f)
+            {
+                DebugConsole.LogError($"ItemCh.Cond: {item.Name}");
+            }
+
+            if (item != heldItem)
+            {
+                DebugConsole.LogError($"ItemCh.HeldItem: {item.Name} | held: {heldItem.Name}");
+            }
+
+            if (heldItem.OwnInventory.CanBePut(item))
+            {
+                DebugConsole.LogError($"ItemCh.CanPut: {item.Name} | held: {heldItem.Name}");
+            }
+
+#warning TODO: Find a replacement for CanBePut()
+            return item.Condition > 0.0f
+                   && item != heldItem
+                   && heldItem.OwnInventory.CanBePut(item); //needs to be replaced as it returns false if there is an item in the slot.
+        }
     }
 }
