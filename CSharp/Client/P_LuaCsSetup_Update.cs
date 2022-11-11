@@ -14,6 +14,5 @@ public class P_LuaCsSetup_Update
         if (!Barotrauma.PlayerInput.KeyHit(Keys.R))
             return;
         Reloader.ReloadHeldItems();
-        DebugConsole.LogError($"DEBUG: R pressed!");
     }
 }

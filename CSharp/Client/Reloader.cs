@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -43,48 +44,42 @@ public static class Reloader
                     //yes--remove item, mark replacement type preference
                     prefItemPrefab = item.Prefab;
                     if (!charInv.TryPutItem(item, Character.Controlled, new[]{ InvSlotType.Any }))
-                    {
-                        DebugConsole.LogError($"HK_Reload: Unable to remove depleted item from weapon/tool. Cannot continue");
                         continue;
-                    }
                 }
 
                 //if empty find a suitable replacement
                 if (heldItem.OwnInventory.GetItemAt(slotIndex) is null)
                 {
                     if (Character.Controlled.Inventory.FindCompatWithPreference(
-                            prefItemPrefab, slotIndex, item1 => 
+                            heldItem, prefItemPrefab, slotIndex, item1 => 
                                 item1.Condition > 0) is { } it)
                     {
                         if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
-                        {
-                            DebugConsole.LogError($"HK_Reload: Unable to insert replacement item {it.Name} into item {heldItem.Name} in slot#{slotIndex}. Skipping this slot.");
                             continue;
-                        }
                     }
                     else
                     {
-                        DebugConsole.LogError($"HK_Reload: Unable to find replacement item-Prefab {prefItemPrefab?.Name} to put into item {heldItem.Name} in slot#{slotIndex}. Skipping this slot.");
                         continue;
                     }
                 }
                 
                 //is it not full stack?
-                if (heldItem.OwnInventory.Capacity > 1
-                    // ReSharper disable once HeapView.ClosureAllocation
-                    && heldItem.OwnInventory.GetItemAt(slotIndex) is { } it1)
+                int diff;
+                if (heldItem.OwnInventory.GetItemAt(slotIndex) is { } it1
+                    && (diff = heldItem.GetSlotMaxStackSize(it1, slotIndex) -
+                               heldItem.OwnInventory.GetItemsAt(slotIndex).Count()) > 0)
                 {
-                    int diff = heldItem.GetSlotMaxStackSize(it1, slotIndex) -
-                               heldItem.OwnInventory.GetItemsAt(slotIndex).Count();
-                    List<Item> refillItems = Character.Controlled.Inventory.FindAllCompatWithPreference(it1.Prefab, slotIndex,
-                        item1 => item1.Condition > 0 
-                                 && item1.Prefab == it1.Prefab
+                    List<Item> refillItems = Character.Controlled.Inventory.FindAllCompatWithPreference(heldItem,
+                        it1.Prefab, slotIndex,
+                        item1 => item1.Condition > 0
+                                 && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
                                  && item1.ParentInventory != heldItem.OwnInventory);
                     foreach (Item refillItem in refillItems)
                     {
                         if (diff < 1)
                             break;
-                        if (heldItem.OwnInventory.TryPutItem(refillItem, slotIndex, false, true, Character.Controlled))
+                        if (heldItem.OwnInventory.TryPutItem(refillItem, slotIndex, false, true,
+                                Character.Controlled))
                             diff -= 1;
                     }
                 }
@@ -95,7 +90,7 @@ public static class Reloader
     }
 
     
-    static List<Item> FindAllCompatWithPreference(this Inventory container, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
+    static List<Item> FindAllCompatWithPreference(this Inventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
         List<Item> compat = new();
         List<Item> pref = new();
@@ -107,10 +102,9 @@ public static class Reloader
         );
         foreach (Item item in iterList)
         {
-            DebugConsole.LogError($"FindCompatAll: {item.Name}");
-            if (!item.CompatibleWithInv(container, slotIndex))
+            if (!item.CompatibleWithInv(heldItem, slotIndex))
                 continue;
-            if (prefab is null || item.Prefab == prefab)
+            if (prefab is null || item.Prefab.Identifier.Equals(prefab.Identifier))
                 pref.Add(item);
             else
                 compat.Add(item);
@@ -119,7 +113,7 @@ public static class Reloader
     }
     
     
-    static Item? FindCompatWithPreference(this Inventory container, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
+    static Item? FindCompatWithPreference(this Inventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
         Item? foundItem = null;
         List<Item> iterList = new();
@@ -130,9 +124,9 @@ public static class Reloader
         foreach (Item item in iterList)
         {
             DebugConsole.LogError($"FindCompat: {item.Name}");
-            if (!item.CompatibleWithInv(container, slotIndex))
+            if (!item.CompatibleWithInv(heldItem, slotIndex))
                 continue;
-            if (prefab is null || prefab == item.Prefab) 
+            if (prefab is null || item.Prefab.Identifier.Equals(prefab.Identifier)) 
                 return item;
             foundItem = item;
         }
@@ -156,27 +150,20 @@ public static class Reloader
 
     static bool CompatibleWithInv(this Item item, Character character) => character.Inventory.CanBePut(item);
     static bool CompatibleWithInv(this Item item, Character character, int slotIndex) => character.Inventory.CanBePutInSlot(item, slotIndex);
-    static bool CompatibleWithInv(this Item item, Item containerParent, int slotIndex) =>
-        containerParent.GetComponent<ItemContainer>()?.CanBeContained(item, slotIndex) ?? false;
-    static bool CompatibleWithInv(this Item item, Item containerParent) =>
-        containerParent.GetComponent<ItemContainer>()?.CanBeContained(item) ?? false;
+    static bool CompatibleWithInv(this Item item, Item containerParent, int slotIndex) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item, slotIndex) ?? false;
+    static bool CompatibleWithInv(this Item item, Item containerParent) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item) ?? false;
 
-    static List<Item> BuildIterList(this List<Item> list, IEnumerable<Item> sourceList, bool recursive = true, Func<Item, bool>? predicate = null)
+    static List<Item> BuildIterList(this List<Item> list, IEnumerable<Item?> sourceList, bool recursive = true, Func<Item, bool>? predicate = null)
     {
-        foreach (Item item in sourceList)
+        foreach (Item? item in sourceList)
         {
+            if (item is null)
+                continue;
             if (predicate is null || predicate(item))
                 list.Add(item);
-            if (recursive && item.OwnInventory.Capacity > 0)
+            if (recursive && item.OwnInventory?.Capacity > 0)
                 list.BuildIterList(item.OwnInventory.AllItemsMod, true, predicate);
         }
         return list;
     }
-    
-    #warning TODO: Re-implement usage of method in checks.
-    static bool IncludeInUsableItemList(this Item item, Item heldItem, int slot) => 
-        item.Condition > 0.0f //usable
-        && item != heldItem  //is not self
-        && item.ParentInventory != heldItem.OwnInventory //is not in tool/weapon already
-        && item.CompatibleWithInv(heldItem, slot);  //slot compat
 }
