@@ -14,18 +14,24 @@ namespace HotkeyReload;
 
 public static class Reloader
 {
+    private static readonly InvSlotType[] ExclusionItemSlotPositions = 
+    {
+        InvSlotType.Bag,
+        InvSlotType.Card,
+        InvSlotType.Head,
+        InvSlotType.Headset,
+        InvSlotType.InnerClothes,
+        InvSlotType.OuterClothes
+    };
+    
     public static void ReloadHeldItems()
     {
         //?? check if in-game && single player or host in multiplayer and we're not switching maps
-        if ( GameMain.GameSession is null 
-             || !GameMain.GameSession.IsRunning
-             || Screen.Selected is null or SubEditorScreen
-             || Screen.Selected.IsEditor
-             || Submarine.Unloading)
-        return;
+        if (!Util.CheckIfValidToInteract())
+            return;
 
-            //Check if inventory available
-        if (Character.Controlled.Inventory is null)
+        //Check if inventory available
+        if (Character.Controlled is null || Character.Controlled.Inventory is null)
             return;
 
         var charInv = Character.Controlled.Inventory;
@@ -55,7 +61,9 @@ public static class Reloader
                 {
                     if (Character.Controlled.Inventory.FindCompatWithPreference(
                             heldItem, prefItemPrefab, slotIndex, item1 =>
-                                item1.Condition > 0) is { } it)
+                                item1.Condition > 0 
+                                && !item1.IsLimbSlotItem(Character.Controlled)
+                                ) is { } it )
                     {
                         if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
                             continue;
@@ -76,7 +84,8 @@ public static class Reloader
                         it1.Prefab, slotIndex,
                         item1 => item1.Condition > 0
                                  && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
-                                 && item1.ParentInventory != heldItem.OwnInventory);
+                                 && item1.ParentInventory != heldItem.OwnInventory
+                                 && !item1.IsLimbSlotItem(Character.Controlled));
                     foreach (Item refillItem in refillItems)
                     {
                         if (diff < 1)
@@ -113,8 +122,8 @@ public static class Reloader
         }
         return pref.Any() ? pref : compat;
     }
-    
-    
+
+
     static Item? FindCompatWithPreference(this Inventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
         Item? foundItem = null;
@@ -167,5 +176,15 @@ public static class Reloader
                 list.BuildIterList(item.OwnInventory.AllItemsMod, true, predicate);
         }
         return list;
+    }
+
+    static bool IsLimbSlotItem(this Item item, Character character)
+    {
+        foreach (InvSlotType slotType in ExclusionItemSlotPositions)
+        {
+            if (character.Inventory.GetItemInLimbSlot(slotType) is { } it && item == it)
+                return true;
+        }
+        return false;
     }
 }
