@@ -17,33 +17,36 @@ public static class Reloader
     public static void ReloadHeldItems()
     {
         //?? check if in-game && single player or host in multiplayer and we're not switching maps
-        if (!GameMain.GameSession.IsRunning
-            || Screen.Selected is SubEditorScreen
-            || Submarine.Unloading)
-            return;
-        
-        //Check if inventory available
+        if ( GameMain.GameSession is null 
+             || !GameMain.GameSession.IsRunning
+             || Screen.Selected is null or SubEditorScreen
+             || Screen.Selected.IsEditor
+             || Submarine.Unloading)
+        return;
+
+            //Check if inventory available
         if (Character.Controlled.Inventory is null)
             return;
-        
+
         var charInv = Character.Controlled.Inventory;
-        
+
         foreach (Item heldItem in Character.Controlled.HeldItems
-                     .Where(i=>i.OwnInventory is {
+                     .Where(i => i.OwnInventory is
+                     {
                          Capacity: > 0,
-                         Locked: false 
+                         Locked: false
                      }))
         {
             for (int slotIndex = 0; slotIndex < heldItem.OwnInventory.Capacity; slotIndex++)
             {
                 ItemPrefab? prefItemPrefab = null;
                 //item exists in inventory?
-                if (heldItem.OwnInventory.GetItemAt(slotIndex) is Item {Condition: <=0} item)
+                if (heldItem.OwnInventory.GetItemAt(slotIndex) is Item { Condition: <= 0 } item)
                 {
                     //yes--item condition 0?
                     //yes--remove item, mark replacement type preference
                     prefItemPrefab = item.Prefab;
-                    if (!charInv.TryPutItem(item, Character.Controlled, new[]{ InvSlotType.Any }))
+                    if (!charInv.TryPutItem(item, Character.Controlled, new[] { InvSlotType.Any }))
                         continue;
                 }
 
@@ -51,7 +54,7 @@ public static class Reloader
                 if (heldItem.OwnInventory.GetItemAt(slotIndex) is null)
                 {
                     if (Character.Controlled.Inventory.FindCompatWithPreference(
-                            heldItem, prefItemPrefab, slotIndex, item1 => 
+                            heldItem, prefItemPrefab, slotIndex, item1 =>
                                 item1.Condition > 0) is { } it)
                     {
                         if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
@@ -62,7 +65,7 @@ public static class Reloader
                         continue;
                     }
                 }
-                
+
                 //is it not full stack?
                 int diff;
                 if (heldItem.OwnInventory.GetItemAt(slotIndex) is { } it1
@@ -84,9 +87,8 @@ public static class Reloader
                     }
                 }
             }
-            
+
         }
-        
     }
 
     
