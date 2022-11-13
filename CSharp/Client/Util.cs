@@ -26,6 +26,16 @@ public static class Util
         return true;
     }
 
+    public static bool CheckIfCharacterReady(Character? character)
+    {
+        //Check if character, inventory available
+        if (character is null 
+            || character.Inventory is null
+            || character.IsDead) //Is spectating?
+            return false;
+        return true;
+    }
+
     private static readonly InvSlotType[] ExclusionItemSlotPositions = 
     {
         InvSlotType.Bag,

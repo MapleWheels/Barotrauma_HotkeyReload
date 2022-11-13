@@ -14,20 +14,17 @@ namespace HotkeyReload;
 
 public static class Reloader
 {
+    /// <summary>
+    /// Removes the inventory items of the item currently being held by the player (hands) if the condition is below 0
+    /// and will then try to replace the item with another equivalent from the player's inventory, prioritizes trying
+    /// to put the same item type. 
+    /// </summary>
     public static void ReloadHeldItems()
     {
         //?? check if in-game && single player or host in multiplayer and we're not switching maps
-        if (!Util.CheckIfValidToInteract())
+        if (!Util.CheckIfValidToInteract() || !Util.CheckIfCharacterReady(Character.Controlled))
             return;
-
-        //Check if character, inventory available
-        if (Character.Controlled is null || Character.Controlled.Inventory is null)
-            return;
-
-        //Is player dead/spectating?
-        if (Character.Controlled.IsDead)
-            return;
-
+        
         var charInv = Character.Controlled.Inventory;
 
         foreach (Item heldItem in Character.Controlled.HeldItems
