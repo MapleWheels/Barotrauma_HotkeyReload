@@ -30,8 +30,12 @@ public static class Reloader
         if (!Util.CheckIfValidToInteract())
             return;
 
-        //Check if inventory available
+        //Check if character, inventory available
         if (Character.Controlled is null || Character.Controlled.Inventory is null)
+            return;
+
+        //Is player dead/spectating?
+        if (Character.Controlled.IsDead)
             return;
 
         var charInv = Character.Controlled.Inventory;
