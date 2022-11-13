@@ -17,15 +17,15 @@ public static class Reloader
     public static void ReloadHeldItems()
     {
         //?? check if in-game && single player or host in multiplayer and we're not switching maps
-        if ( GameMain.GameSession is null 
-             || !GameMain.GameSession.IsRunning
-             || Screen.Selected is null or SubEditorScreen
-             || Screen.Selected.IsEditor
-             || Submarine.Unloading)
-        return;
+        if (!Util.CheckIfValidToInteract())
+            return;
 
-            //Check if inventory available
-        if (Character.Controlled.Inventory is null)
+        //Check if character, inventory available
+        if (Character.Controlled is null || Character.Controlled.Inventory is null)
+            return;
+
+        //Is player dead/spectating?
+        if (Character.Controlled.IsDead)
             return;
 
         var charInv = Character.Controlled.Inventory;
@@ -55,7 +55,9 @@ public static class Reloader
                 {
                     if (Character.Controlled.Inventory.FindCompatWithPreference(
                             heldItem, prefItemPrefab, slotIndex, item1 =>
-                                item1.Condition > 0) is { } it)
+                                item1.Condition > 0 
+                                && !item1.IsLimbSlotItem(Character.Controlled)
+                                ) is { } it )
                     {
                         if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
                             continue;
@@ -76,7 +78,8 @@ public static class Reloader
                         it1.Prefab, slotIndex,
                         item1 => item1.Condition > 0
                                  && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
-                                 && item1.ParentInventory != heldItem.OwnInventory);
+                                 && item1.ParentInventory != heldItem.OwnInventory
+                                 && !item1.IsLimbSlotItem(Character.Controlled));
                     foreach (Item refillItem in refillItems)
                     {
                         if (diff < 1)
@@ -113,8 +116,8 @@ public static class Reloader
         }
         return pref.Any() ? pref : compat;
     }
-    
-    
+
+
     static Item? FindCompatWithPreference(this Inventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
         Item? foundItem = null;
@@ -134,26 +137,6 @@ public static class Reloader
         }
         return foundItem;
     }
-
-    static int GetSlotMaxStackSize(this Item containerItem, Item storableItem, int slotIndex) =>
-        containerItem.GetComponent<ItemContainer>() is { } container 
-        && container.CanBeContained(storableItem, slotIndex)
-            ? Math.Min(container.MaxStackSize, storableItem.Prefab.MaxStackSize)
-            : 0;
-
-    static bool CompatibleWithInv(this Item item, Inventory container, int slotIndex = -1) => container.Owner switch
-        {
-            Item ownerItem when slotIndex == -1 => CompatibleWithInv(item, ownerItem),
-            Item ownerItem => CompatibleWithInv(item, ownerItem, slotIndex),
-            Character character when slotIndex == -1 => CompatibleWithInv(item, character),
-            Character character => CompatibleWithInv(item, character, slotIndex),
-            _ => false
-        };
-
-    static bool CompatibleWithInv(this Item item, Character character) => character.Inventory.CanBePut(item);
-    static bool CompatibleWithInv(this Item item, Character character, int slotIndex) => character.Inventory.CanBePutInSlot(item, slotIndex);
-    static bool CompatibleWithInv(this Item item, Item containerParent, int slotIndex) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item, slotIndex) ?? false;
-    static bool CompatibleWithInv(this Item item, Item containerParent) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item) ?? false;
 
     static List<Item> BuildIterList(this List<Item> list, IEnumerable<Item?> sourceList, bool recursive = true, Func<Item, bool>? predicate = null)
     {
