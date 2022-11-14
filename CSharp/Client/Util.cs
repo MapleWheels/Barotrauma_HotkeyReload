@@ -19,10 +19,8 @@ internal static class Util
         return GameMain.GameSession is not null
                && GameMain.GameSession.IsRunning
                && Screen.Selected is not (null or SubEditorScreen)
-               && !Screen.Selected.IsEditor
                && !Submarine.Unloading
-               && GUI.KeyboardDispatcher is not null
-               && GUI.KeyboardDispatcher.Subscriber is null;
+               && (GUI.KeyboardDispatcher is null || GUI.KeyboardDispatcher.Subscriber is null);
     }
 
     internal static bool CheckIfCharacterReady(Character? character)
