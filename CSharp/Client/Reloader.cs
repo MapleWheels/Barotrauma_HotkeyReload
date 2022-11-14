@@ -132,7 +132,6 @@ public static class Reloader
             );
         foreach (Item item in iterList)
         {
-            DebugConsole.LogError($"FindCompat: {item.Name}");
             if (!item.CompatibleWithInv(heldItem, slotIndex))
                 continue;
             if (prefab is null || item.Prefab.Identifier.Equals(prefab.Identifier)) 
