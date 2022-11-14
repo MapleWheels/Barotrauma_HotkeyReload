@@ -12,15 +12,26 @@ using Barotrauma.Items.Components;
 
 namespace HotkeyReload;
 
-static class Util
+internal static class Util
 {
     internal static bool CheckIfValidToInteract()
     {
         if ( GameMain.GameSession is null 
              || !GameMain.GameSession.IsRunning
              || Screen.Selected is null or SubEditorScreen
+             || Screen.Selected.IsEditor
              || Submarine.Unloading
-           )
+             || GUI.KeyboardDispatcher is not null)
+            return false;
+        return true;
+    }
+
+    internal static bool CheckIfCharacterReady(Character? character)
+    {
+        //Check if character, inventory available
+        if (character is null 
+            || character.Inventory is null
+            || character.IsDead) //Is spectating?
             return false;
         return true;
     }

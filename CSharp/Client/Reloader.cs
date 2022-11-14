@@ -14,16 +14,17 @@ namespace HotkeyReload;
 
 public static class Reloader
 {
-    internal static void ReloadHeldItems()
+    /// <summary>
+    /// Removes the inventory items of the item currently being held by the player (hands) if the condition is below 0
+    /// and will then try to replace the item with another equivalent from the player's inventory, prioritizes trying
+    /// to put the same item type. 
+    /// </summary>
+    public static void ReloadHeldItems()
     {
         //?? check if in-game && single player or host in multiplayer and we're not switching maps
-        if (!Util.CheckIfValidToInteract())
+        if (!Util.CheckIfValidToInteract() || !Util.CheckIfCharacterReady(Character.Controlled))
             return;
-
-        //Check if character, inventory available
-        if (Character.Controlled is null || Character.Controlled.Inventory is null)
-            return;
-
+        
         var charInv = Character.Controlled.Inventory;
 
         foreach (Item heldItem in Character.Controlled.HeldItems
@@ -75,8 +76,7 @@ public static class Reloader
                         item1 => item1.Condition > 0
                                  && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
                                  && item1.ParentInventory != heldItem.OwnInventory
-                                 && !item1.IsLimbSlotItem(Character.Controlled)
-                                 );
+                                 && !item1.IsLimbSlotItem(Character.Controlled));
                     foreach (Item refillItem in refillItems)
                     {
                         if (diff < 1)
