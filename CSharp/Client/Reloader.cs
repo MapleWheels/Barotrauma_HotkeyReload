@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
@@ -27,67 +28,73 @@ public static class Reloader
         
         var charInv = Character.Controlled.Inventory;
 
-        foreach (Item heldItem in Character.Controlled.HeldItems
-                     .Where(i => i.OwnInventory is
-                     {
-                         Capacity: > 0,
-                         Locked: false
-                     }))
+        if (Character.Controlled.HeldItems != null)
         {
-            for (int slotIndex = 0; slotIndex < heldItem.OwnInventory.Capacity; slotIndex++)
-            {
-                ItemPrefab? prefItemPrefab = null;
-                //item exists in inventory?
-                if (heldItem.OwnInventory.GetItemAt(slotIndex) is Item { Condition: <= 0 } item)
-                {
-                    //yes--item condition 0?
-                    //yes--remove item, mark replacement type preference
-                    prefItemPrefab = item.Prefab;
-                    if (!charInv.TryPutItem(item, Character.Controlled, new[] { InvSlotType.Any }))
-                        continue;
-                }
+            ImmutableList<Item> heldItems = Character.Controlled.HeldItems.ToImmutableList();
 
-                //if empty find a suitable replacement
-                if (heldItem.OwnInventory.GetItemAt(slotIndex) is null)
+            foreach (Item heldItem in heldItems
+                         .Where(i => i.OwnInventory is
+                         {
+                             Capacity: > 0,
+                             Locked: false
+                         }))
+            {
+                for (int slotIndex = 0; slotIndex < heldItem.OwnInventory.Capacity; slotIndex++)
                 {
-                    if (Character.Controlled.Inventory.FindCompatWithPreference(
-                            heldItem, prefItemPrefab, slotIndex, item1 =>
-                                item1.Condition > 0 
-                                && !item1.IsLimbSlotItem(Character.Controlled)
-                                ) is { } it )
+                    ItemPrefab? prefItemPrefab = null;
+                    //item exists in inventory?
+                    if (heldItem.OwnInventory.GetItemAt(slotIndex) is Item { Condition: <= 0 } item)
                     {
-                        if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
+                        //yes--item condition 0?
+                        //yes--remove item, mark replacement type preference
+                        prefItemPrefab = item.Prefab;
+                        if (!charInv.TryPutItem(item, Character.Controlled, new[] { InvSlotType.Any }))
                             continue;
                     }
-                    else
-                    {
-                        continue;
-                    }
-                }
 
-                //is it not full stack?
-                int diff;
-                if (heldItem.OwnInventory.GetItemAt(slotIndex) is { } it1
-                    && (diff = heldItem.GetSlotMaxStackSize(it1, slotIndex) -
-                               heldItem.OwnInventory.GetItemsAt(slotIndex).Count()) > 0)
-                {
-                    List<Item> refillItems = Character.Controlled.Inventory.FindAllCompatWithPreference(heldItem,
-                        it1.Prefab, slotIndex,
-                        item1 => item1.Condition > 0
-                                 && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
-                                 && item1.ParentInventory != heldItem.OwnInventory
-                                 && !item1.IsLimbSlotItem(Character.Controlled));
-                    foreach (Item refillItem in refillItems)
+                    //if empty find a suitable replacement
+                    if (heldItem.OwnInventory.GetItemAt(slotIndex) is null)
                     {
-                        if (diff < 1)
-                            break;
-                        if (heldItem.OwnInventory.TryPutItem(refillItem, slotIndex, false, true,
-                                Character.Controlled))
-                            diff -= 1;
+                        if (Character.Controlled.Inventory.FindCompatWithPreference(
+                                heldItem, prefItemPrefab, slotIndex, item1 =>
+                                    item1.Condition > 0
+                                    && !item1.IsLimbSlotItem(Character.Controlled)
+                                    && !heldItems.IsAnyOwnerOf(item1)
+                            ) is { } it)
+                        {
+                            if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
+                                continue;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    //is it not full stack?
+                    int diff;
+                    if (heldItem.OwnInventory.GetItemAt(slotIndex) is { } it1
+                        && (diff = heldItem.GetSlotMaxStackSize(it1, slotIndex) -
+                                   heldItem.OwnInventory.GetItemsAt(slotIndex).Count()) > 0)
+                    {
+                        List<Item> refillItems = Character.Controlled.Inventory.FindAllCompatWithPreference(heldItem,
+                            it1.Prefab, slotIndex,
+                            item1 => item1.Condition > 0
+                                     && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
+                                     && item1.ParentInventory != heldItem.OwnInventory
+                                     && !heldItems.IsAnyOwnerOf(item1)
+                                     && !item1.IsLimbSlotItem(Character.Controlled));
+                        foreach (Item refillItem in refillItems)
+                        {
+                            if (diff < 1)
+                                break;
+                            if (heldItem.OwnInventory.TryPutItem(refillItem, slotIndex, false, true,
+                                    Character.Controlled))
+                                diff -= 1;
+                        }
                     }
                 }
             }
-
         }
     }
 
@@ -147,5 +154,21 @@ public static class Reloader
                 list.BuildIterList(item.OwnInventory.AllItemsMod, true, predicate);
         }
         return list;
+    }
+
+    static bool IsAnyOwnerOf(this IEnumerable<Item> owners, Item? item)
+    {
+        if (item is null)
+            return false;
+        foreach (Item owner in owners)
+        {
+            if (
+                owner is { OwnInventory: { } ownInventory }
+                && item.ParentInventory is { } parentInventory
+                && ownInventory.Equals(parentInventory))
+                return true;
+        }
+
+        return false;
     }
 }
