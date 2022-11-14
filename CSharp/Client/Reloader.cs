@@ -14,7 +14,7 @@ namespace HotkeyReload;
 
 public static class Reloader
 {
-    public static void ReloadHeldItems()
+    internal static void ReloadHeldItems()
     {
         //?? check if in-game && single player or host in multiplayer and we're not switching maps
         if (!Util.CheckIfValidToInteract())
