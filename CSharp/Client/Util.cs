@@ -16,24 +16,21 @@ internal static class Util
 {
     internal static bool CheckIfValidToInteract()
     {
-        if ( GameMain.GameSession is null 
-             || !GameMain.GameSession.IsRunning
-             || Screen.Selected is null or SubEditorScreen
-             || Screen.Selected.IsEditor
-             || Submarine.Unloading
-             || GUI.KeyboardDispatcher is not null)
-            return false;
-        return true;
+        return GameMain.GameSession is not null
+               && GameMain.GameSession.IsRunning
+               && Screen.Selected is not (null or SubEditorScreen)
+               && !Screen.Selected.IsEditor
+               && !Submarine.Unloading
+               && GUI.KeyboardDispatcher is not null
+               && GUI.KeyboardDispatcher.Subscriber is null;
     }
 
     internal static bool CheckIfCharacterReady(Character? character)
     {
         //Check if character, inventory available
-        if (character is null 
-            || character.Inventory is null
-            || character.IsDead) //Is spectating?
-            return false;
-        return true;
+        return character is not null 
+               && character.Inventory is not null 
+               && !character.IsDead; //Is spectating?
     }
 
     private static readonly InvSlotType[] ExclusionItemSlotPositions = 
