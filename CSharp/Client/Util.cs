@@ -19,9 +19,8 @@ static class Util
         if ( GameMain.GameSession is null 
              || !GameMain.GameSession.IsRunning
              || Screen.Selected is null or SubEditorScreen
-             || Screen.Selected.IsEditor
              || Submarine.Unloading
-             || GUI.KeyboardDispatcher is not null)
+           )
             return false;
         return true;
     }

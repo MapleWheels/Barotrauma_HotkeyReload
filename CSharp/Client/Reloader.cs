@@ -24,10 +24,6 @@ public static class Reloader
         if (Character.Controlled is null || Character.Controlled.Inventory is null)
             return;
 
-        //Is player dead/spectating?
-        if (Character.Controlled.IsDead)
-            return;
-
         var charInv = Character.Controlled.Inventory;
 
         foreach (Item heldItem in Character.Controlled.HeldItems
@@ -79,7 +75,8 @@ public static class Reloader
                         item1 => item1.Condition > 0
                                  && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
                                  && item1.ParentInventory != heldItem.OwnInventory
-                                 && !item1.IsLimbSlotItem(Character.Controlled));
+                                 && !item1.IsLimbSlotItem(Character.Controlled)
+                                 );
                     foreach (Item refillItem in refillItems)
                     {
                         if (diff < 1)
