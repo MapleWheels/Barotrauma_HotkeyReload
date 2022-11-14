@@ -12,9 +12,9 @@ using Barotrauma.Items.Components;
 
 namespace HotkeyReload;
 
-public static class Util
+internal static class Util
 {
-    public static bool CheckIfValidToInteract()
+    internal static bool CheckIfValidToInteract()
     {
         if ( GameMain.GameSession is null 
              || !GameMain.GameSession.IsRunning
@@ -26,7 +26,7 @@ public static class Util
         return true;
     }
 
-    public static bool CheckIfCharacterReady(Character? character)
+    internal static bool CheckIfCharacterReady(Character? character)
     {
         //Check if character, inventory available
         if (character is null 
@@ -46,13 +46,13 @@ public static class Util
         InvSlotType.OuterClothes
     };
 
-    public static int GetSlotMaxStackSize(this Item containerItem, Item storableItem, int slotIndex) =>
+    internal static int GetSlotMaxStackSize(this Item containerItem, Item storableItem, int slotIndex) =>
         containerItem.GetComponent<ItemContainer>() is { } container 
         && container.CanBeContained(storableItem, slotIndex)
             ? Math.Min(container.MaxStackSize, storableItem.Prefab.MaxStackSize)
             : 0;
 
-    public static bool CompatibleWithInv(this Item item, Inventory container, int slotIndex = -1) => container.Owner switch
+    internal static bool CompatibleWithInv(this Item item, Inventory container, int slotIndex = -1) => container.Owner switch
     {
         Item ownerItem when slotIndex == -1 => CompatibleWithInv(item, ownerItem),
         Item ownerItem => CompatibleWithInv(item, ownerItem, slotIndex),
@@ -61,12 +61,12 @@ public static class Util
         _ => false
     };
 
-    public static bool CompatibleWithInv(this Item item, Character character) => character.Inventory.CanBePut(item);
-    public static bool CompatibleWithInv(this Item item, Character character, int slotIndex) => character.Inventory.CanBePutInSlot(item, slotIndex);
-    public static bool CompatibleWithInv(this Item item, Item containerParent, int slotIndex) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item, slotIndex) ?? false;
-    public static bool CompatibleWithInv(this Item item, Item containerParent) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item) ?? false;
+    internal static bool CompatibleWithInv(this Item item, Character character) => character.Inventory.CanBePut(item);
+    internal static bool CompatibleWithInv(this Item item, Character character, int slotIndex) => character.Inventory.CanBePutInSlot(item, slotIndex);
+    internal static bool CompatibleWithInv(this Item item, Item containerParent, int slotIndex) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item, slotIndex) ?? false;
+    internal static bool CompatibleWithInv(this Item item, Item containerParent) => containerParent.GetComponent<ItemContainer>()?.CanBeContained(item) ?? false;
 
-    public static bool IsLimbSlotItem(this Item item, Character character)
+    internal static bool IsLimbSlotItem(this Item item, Character character)
     {
         foreach (InvSlotType slotType in ExclusionItemSlotPositions)
         {
