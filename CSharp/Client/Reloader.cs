@@ -92,16 +92,26 @@ public static class Reloader
     }
 
     
-    static List<Item> FindAllCompatWithPreference(this Inventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
+    static List<Item> FindAllCompatWithPreference(this CharacterInventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
         List<Item> compat = new();
         List<Item> pref = new();
-        
         List<Item> iterList = new();
-        iterList.BuildIterList(container.AllItemsMod, true, item =>
-            item.Condition > 0f
-            && (predicate?.Invoke(item) ?? true)
-        );
+        
+        //So the bag seems to be the last thing that's searched for items when we want it to be the first.
+        //Let's do a custom list order.
+        foreach (InvSlotType slotType in LimbsSearchOrder)
+        {
+            if (container.GetItemInLimbSlot(slotType) is { } item)
+            {
+                iterList.Add(item);
+                if (item.OwnInventory is { Capacity: > 0 } inv)
+                {
+                    iterList.BuildIterList(inv.AllItemsMod, true, predicate);
+                }
+            }
+        }
+        
         foreach (Item item in iterList)
         {
             if (!item.CompatibleWithInv(heldItem, slotIndex))
@@ -115,14 +125,25 @@ public static class Reloader
     }
 
 
-    static Item? FindCompatWithPreference(this Inventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
+    static Item? FindCompatWithPreference(this CharacterInventory container, Item heldItem, ItemPrefab? prefab = null, int slotIndex = -1, Func<Item, bool>? predicate = null)
     {
         Item? foundItem = null;
         List<Item> iterList = new();
-        iterList.BuildIterList(container.AllItemsMod, true, item =>
-            item.Condition > 0f
-            && (predicate?.Invoke(item) ?? true)
-            );
+
+        //So the bag seems to be the last thing that's searched for items when we want it to be the first.
+        //Let's do a custom list order.
+        foreach (InvSlotType slotType in LimbsSearchOrder)
+        {
+            if (container.GetItemInLimbSlot(slotType) is { } item)
+            {
+                iterList.Add(item);
+                if (item.OwnInventory is { Capacity: > 0 } inv)
+                {
+                    iterList.BuildIterList(inv.AllItemsMod, true, predicate);
+                }
+            }
+        }
+        
         foreach (Item item in iterList)
         {
             DebugConsole.LogError($"FindCompat: {item.Name}");
@@ -148,4 +169,15 @@ public static class Reloader
         }
         return list;
     }
+
+    static readonly Barotrauma.InvSlotType[] LimbsSearchOrder = 
+    {
+        InvSlotType.Bag,
+        InvSlotType.InnerClothes,
+        InvSlotType.OuterClothes,
+        InvSlotType.Head,
+        InvSlotType.Headset,
+        InvSlotType.Card,
+        InvSlotType.None
+    };
 }
