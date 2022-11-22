@@ -28,13 +28,7 @@ public static class QuickActions
     /// </summary>
     public static void QuickLootAllToPlayerInventory()
     {
-        if (!Util.CheckIfValidToInteract() || !Util.CheckIfCharacterReady(Character.Controlled))
-            return;
-        
-        //Check if player is currently interacting with another inventory and it's valid for this action.
-        if (Character.Controlled.SelectedItem is null
-            || Character.Controlled.SelectedItem.OwnInventory is null
-            || Character.Controlled.SelectedItem.OwnInventory.Capacity < 1)
+        if (!IsReadyToExchangeItems(Character.Controlled))
             return;
 
         CharacterInventory charInv = Character.Controlled.Inventory;
@@ -62,7 +56,9 @@ public static class QuickActions
     /// </summary>
     public static void QuickStackToStorageInventory()
     {
-        throw new NotImplementedException();
+        if (!IsReadyToExchangeItems(Character.Controlled))
+            return;
+        Character.Controlled.SelectedItem.RefillItemStacksUsingContainer(Character.Controlled.Inventory, true);
     }
 
     /// <summary>
@@ -71,7 +67,26 @@ public static class QuickActions
     /// </summary>
     public static void QuickStackToPlayerInventory()
     {
-        throw new NotImplementedException();
-    }    
+        if (!IsReadyToExchangeItems(Character.Controlled))
+            return;
+
+        Item selectedItem = Character.Controlled.SelectedItem;
+        CharacterInventory charInv = Character.Controlled.Inventory;
+        
+        for (int index = 0; index < charInv.slots.Length; index++)
+        {
+            if (charInv.slots[index].FirstOrDefault() is { } item)
+            {
+                
+            }
+        }
+    }
+
+    private static bool IsReadyToExchangeItems(Character character)
+    {
+        return Util.CheckIfValidToInteract()
+               && Util.CheckIfCharacterReady(character)
+               && character.SelectedItem is { OwnInventory.Capacity: > 0 };
+    }
     
 }
