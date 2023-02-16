@@ -55,6 +55,7 @@ public static class Reloader
                             heldItem, prefItemPrefab, slotIndex, item1 =>
                                 item1.Condition > 0 
                                 && !item1.IsLimbSlotItem(Character.Controlled)
+                                && Util.CompatibilityRulesCheck(heldItem, item1)
                                 ) is { } it )
                     {
                         if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))

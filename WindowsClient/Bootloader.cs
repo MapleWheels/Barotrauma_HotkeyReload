@@ -20,6 +20,18 @@ sealed class Bootloader : IAssemblyPlugin
         KeybindQuickStackToPlayer,
         KeybindQuickStackToStorage;
 
+    static Bootloader()
+    {
+        Util.RegisterCompatibilityRule("plasmacutter",
+            (heldItem, storableItem) => storableItem.HasTag("oxygensource"));
+        
+        Util.RegisterCompatibilityRule("weldingtool",
+            (_, storableItem) => storableItem.HasTag("weldingtoolfuel"));
+        
+        Util.RegisterCompatibilityRule("flamer",
+            (heldItem, storableItem) => storableItem.HasTag("weldingtoolfuel"));
+    }
+
     private void RegisterConfig()
     {
         KeybindReload = ConfigManager.AddConfigKeyOrMouseBind(

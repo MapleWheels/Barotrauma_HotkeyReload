@@ -17,6 +17,18 @@ namespace HotkeyReload;
 
 internal static class Util
 {
+    private static readonly InvSlotType[] ExclusionItemSlotPositions = 
+    {
+        InvSlotType.Bag,
+        InvSlotType.Card,
+        InvSlotType.Head,
+        InvSlotType.Headset,
+        InvSlotType.InnerClothes,
+        InvSlotType.OuterClothes
+    };
+
+    private static readonly Dictionary<string, System.Func<Item, Item, bool>> ConditionalRules = new ();
+
     internal static bool CheckIfValidToInteract()
     {
         if ( GameMain.GameSession is null 
@@ -47,15 +59,24 @@ internal static class Util
         return true;
     }
 
-    private static readonly InvSlotType[] ExclusionItemSlotPositions = 
+    internal static void RegisterCompatibilityRule(string itemPrefabIdentifier, Func<Item, Item, bool> predicate)
     {
-        InvSlotType.Bag,
-        InvSlotType.Card,
-        InvSlotType.Head,
-        InvSlotType.Headset,
-        InvSlotType.InnerClothes,
-        InvSlotType.OuterClothes
-    };
+        ConditionalRules[itemPrefabIdentifier] = predicate;
+    }
+
+    internal static void RemoveCompatibilityRule(string itemPrefabIdentifier)
+    {
+        ConditionalRules.Remove(itemPrefabIdentifier);
+    }
+    
+    internal static bool CompatibilityRulesCheck(Item heldItem, Item storableItem)
+    {
+        if (ConditionalRules.TryGetValue(heldItem.Prefab.Identifier.Value, out var pred))
+        {
+            return pred(heldItem, storableItem);
+        }
+        return true;
+    }
 
     internal static int GetSlotMaxStackSize(this Item containerItem, Item storableItem, int slotIndex)
     {
