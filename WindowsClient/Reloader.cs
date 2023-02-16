@@ -55,8 +55,10 @@ public static class Reloader
                             heldItem, prefItemPrefab, slotIndex, item1 =>
                                 item1.Condition > 0 
                                 && !item1.IsLimbSlotItem(Character.Controlled)
+                                && ((item1.ParentInventory is { Owner: Item ownerItem} && !Character.Controlled.HeldItems.Contains(ownerItem)) 
+                                    || item1.ParentInventory?.Owner is not Item)
                                 && Util.CompatibilityRulesCheck(heldItem, item1)
-                                ) is { } it )
+                        ) is { } it )
                     {
                         if (!heldItem.OwnInventory.TryPutItem(it, slotIndex, true, false, Character.Controlled))
                             continue;
@@ -77,8 +79,11 @@ public static class Reloader
                         it1.Prefab, slotIndex,
                         item1 => item1.Condition > 0
                                  && item1.Prefab.Identifier.Equals(it1.Prefab.Identifier)
-                                 && item1.ParentInventory != heldItem.OwnInventory
-                                 && !item1.IsLimbSlotItem(Character.Controlled));
+                                 && !item1.IsLimbSlotItem(Character.Controlled)
+                                 && ((item1.ParentInventory is { Owner: Item ownerItem} && !Character.Controlled.HeldItems.Contains(ownerItem)) 
+                                     || item1.ParentInventory?.Owner is not Item)
+                                 && Util.CompatibilityRulesCheck(heldItem, item1)
+                                 );
                     foreach (Item refillItem in refillItems)
                     {
                         if (diff < 1)
