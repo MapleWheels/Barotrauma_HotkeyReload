@@ -19,7 +19,7 @@ public static class QuickActions
         InvSlotType.LeftHand, InvSlotType.RightHand,
         InvSlotType.Bag, InvSlotType.InnerClothes,
         InvSlotType.OuterClothes, InvSlotType.Head,
-        InvSlotType.None
+        InvSlotType.Any, InvSlotType.None
     };
     
     /// <summary>
@@ -54,17 +54,15 @@ public static class QuickActions
                     continue;
                 }
             }
+            
+            if (slotType is InvSlotType.LeftHand or InvSlotType.RightHand)
+                continue;
 
-            if (slotType is not (InvSlotType.LeftHand or InvSlotType.RightHand))
+            foreach (Item item in selectedItem.OwnInventory.AllItemsMod)
             {
-                foreach (Item item in selectedItem.OwnInventory.AllItemsMod)
-                {
-                    charInv.TryPutItem(item, Character.Controlled, new List<InvSlotType> { slotType });
-                }
+                charInv.TryPutItem(item, Character.Controlled, new List<InvSlotType> { slotType });
             }
         }
-        
-        
     }
     
     /// <summary>
