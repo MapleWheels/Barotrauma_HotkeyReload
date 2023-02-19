@@ -28,40 +28,51 @@ public static class QuickActions
     /// </summary>
     public static void QuickLootAllToPlayerInventory()
     {
-        if (!IsReadyToExchangeItems(Character.Controlled))
-            return;
+        Inventory source;
+        CharacterInventory target;
 
-        CharacterInventory charInv = Character.Controlled.Inventory;
-        
-        //SelectedItem Inv
-        Item selectedItem = Character.Controlled.SelectedItem;
-        
-        //Is the selected item in their hands?
-        if (selectedItem == charInv.GetItemInLimbSlot(InvSlotType.LeftHand)
-            || selectedItem == charInv.GetItemInLimbSlot(InvSlotType.RightHand))
+        if (IsCharReadyToExchangeWithItem(Character.Controlled))
+        {
+            target = Character.Controlled.Inventory;
+            source = Character.Controlled.SelectedItem.OwnInventory;
+            
+            if (Character.Controlled.SelectedItem == target.GetItemInLimbSlot(InvSlotType.LeftHand)
+                || Character.Controlled.SelectedItem == target.GetItemInLimbSlot(InvSlotType.RightHand))
+                return;
+        }
+        else if (IsCharReadyToExchangeWithChar(Character.Controlled))
+        {
+            target = Character.Controlled.Inventory;
+            source = Character.Controlled.SelectedCharacter.Inventory;
+        }
+        else
+        {
             return;
-
+        }
+        
         foreach (InvSlotType slotType in InvPriorityOrder)
         {
             if (slotType is InvSlotType.LeftHand or InvSlotType.RightHand or InvSlotType.Bag)
             {
-                if (charInv.GetItemInLimbSlot(slotType) is { OwnInventory: { Capacity: > 0, Locked: false } } item)
+                if (target.GetItemInLimbSlot(slotType) is { OwnInventory: { Capacity: > 0, Locked: false } } item)
                 {
-                    foreach (Item item1 in selectedItem.OwnInventory.AllItemsMod)
-                    {
-                        item.OwnInventory.TryPutItem(item1, Character.Controlled);
-                    }
+                    TransferItems(source, item.OwnInventory, Character.Controlled, null);
                     continue;
                 }
             }
             
             if (slotType is InvSlotType.LeftHand or InvSlotType.RightHand)
                 continue;
+            
+            TransferItems(source, target,  Character.Controlled, new List<InvSlotType>{ slotType });
+        }
+    }
 
-            foreach (Item item in selectedItem.OwnInventory.AllItemsMod)
-            {
-                charInv.TryPutItem(item, Character.Controlled, new List<InvSlotType> { slotType });
-            }
+    private static void TransferItems(Inventory source, Inventory target, Character character, List<InvSlotType>? allowedSlots = null)
+    {
+        foreach (Item item in source.AllItemsMod)
+        {
+            target.TryPutItem(item, character, allowedSlots);
         }
     }
     
@@ -71,7 +82,7 @@ public static class QuickActions
     /// </summary>
     public static void QuickStackToStorageInventory()
     {
-        if (!IsReadyToExchangeItems(Character.Controlled))
+        if (!IsCharReadyToExchangeWithItem(Character.Controlled))
             return;
         Character.Controlled.SelectedItem.RefillItemStacksUsingContainer(Character.Controlled.Inventory);
     }
@@ -82,16 +93,25 @@ public static class QuickActions
     /// </summary>
     public static void QuickStackToPlayerInventory()
     {
-        if (!IsReadyToExchangeItems(Character.Controlled))
+        if (!IsCharReadyToExchangeWithItem(Character.Controlled))
             return;
         Character.Controlled.RefillItemStacksUsingContainer(Character.Controlled.SelectedItem.OwnInventory);
     }
 
-    private static bool IsReadyToExchangeItems(Character character)
+    private static bool IsCharReadyToExchangeWithItem(Character character)
     {
         return Util.CheckIfValidToInteract()
                && Util.CheckIfCharacterReady(character)
-               && character.SelectedItem is { OwnInventory.Capacity: > 0 };
+               && (character.SelectedItem is 
+                   { OwnInventory: { Capacity: > 0, Locked: false }});
+    }
+    
+    private static bool IsCharReadyToExchangeWithChar(Character character)
+    {
+        return Util.CheckIfValidToInteract()
+               && Util.CheckIfCharacterReady(character)
+               && character.SelectedCharacter is 
+                   { CanInventoryBeAccessed: true, Inventory: { Locked: false, Capacity: > 0 }};
     }
     
 }
