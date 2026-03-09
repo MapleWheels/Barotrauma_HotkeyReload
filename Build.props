@@ -1,0 +1,15 @@
+<Project>
+    <PropertyGroup>
+        <!-- IMPORTANT: Should point to <Barotrauma_Install>\LocalMods\<MyModName>\ -->
+        <!-- IMPORTANT: ModDeplyDir Path must end with '\' -->
+        <ModDeployDir>.\..\..\LuaCsForBarotrauma\Deploy\bin\content\Windows\Client\LocalMods\HotkeyReload\</ModDeployDir>
+        <!-- IMPORTANT: Avoid the use of special (IE: / : ; , \ < > ?) (periods "." are good) and non-english characters in the AssemblyName.-->
+        <AssemblyName>HotkeyReload</AssemblyName>
+    </PropertyGroup>
+	<ItemGroup>
+        <PackageReference Include="HarmonyX" Version="2.16.0" />
+        <PackageReference Include="LightInject" Version="6.6.4" />
+        <PackageReference Include="OneOf" Version="3.0.271" />
+        <PackageReference Include="FluentResults" Version="3.16.0" />
+    </ItemGroup>
+</Project>

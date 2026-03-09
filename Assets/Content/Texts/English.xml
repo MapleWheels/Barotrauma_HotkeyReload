@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<infotexts language="English" nowhitespace="false" translatedname="English">
+    <Hotkey_x0020_Reload-Swap.KeybindReload.DisplayName>Reload</Hotkey_x0020_Reload-Swap.KeybindReload.DisplayName>
+    <Hotkey_x0020_Reload-Swap.KeybindQuickLootAll.DisplayName>Quick Loot All</Hotkey_x0020_Reload-Swap.KeybindQuickLootAll.DisplayName>
+    <Hotkey_x0020_Reload-Swap.KeybindQuickStackToPlayer.DisplayName>Quick Stack to Player</Hotkey_x0020_Reload-Swap.KeybindQuickStackToPlayer.DisplayName>
+    <Hotkey_x0020_Reload-Swap.KeybindQuickStackToStorage.DisplayName>Quick Stack to Storage</Hotkey_x0020_Reload-Swap.KeybindQuickStackToStorage.DisplayName>
+    <Hotkey_x0020_Reload-Swap.KeybindReload.DisplayCategory>Controls</Hotkey_x0020_Reload-Swap.KeybindReload.DisplayCategory>
+    <Hotkey_x0020_Reload-Swap.KeybindQuickLootAll.DisplayCategory>Controls</Hotkey_x0020_Reload-Swap.KeybindQuickLootAll.DisplayCategory>
+    <Hotkey_x0020_Reload-Swap.KeybindQuickStackToPlayer.DisplayCategory>Controls</Hotkey_x0020_Reload-Swap.KeybindQuickStackToPlayer.DisplayCategory>
+    <Hotkey_x0020_Reload-Swap.KeybindQuickStackToStorage.DisplayCategory>Controls</Hotkey_x0020_Reload-Swap.KeybindQuickStackToStorage.DisplayCategory>
+</infotexts>
