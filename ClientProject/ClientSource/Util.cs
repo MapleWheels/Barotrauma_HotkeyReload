@@ -25,7 +25,7 @@ internal static class Util
     {
         if ( GameMain.GameSession is null 
              || !GameMain.GameSession.IsRunning
-             || Screen.Selected is null or SubEditorScreen
+             || Screen.Selected is null or SubEditorScreen or MainMenuScreen or NetLobbyScreen
              //|| Screen.Selected.IsEditor
              || Submarine.Unloading
              || GUI.KeyboardDispatcher.Subscriber is not null)
@@ -83,10 +83,10 @@ internal static class Util
         {
             if (container.CanBeContained(storableItem, slotIndex))
             {
-                t = Math.Min(slotIndex < 0 || slotIndex >= container.Capacity - 1
-                    ? 0 
-                    : container.slotRestrictions[slotIndex].MaxStackSize, 
-                    storableItem.Prefab.MaxStackSize);
+                var itemMaxStackCount = slotIndex < 0 || slotIndex >= container.Capacity
+                    ? 0
+                    : container.slotRestrictions[slotIndex].MaxStackSize;
+                t = Math.Min(itemMaxStackCount, storableItem.Prefab.MaxStackSize);
                 if (t > maxval)
                     maxval = t;
             }

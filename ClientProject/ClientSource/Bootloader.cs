@@ -36,7 +36,7 @@ public sealed class Bootloader : IAssemblyPlugin, IEventUpdate
     public IEventService EventService { get; set; }
 
     private static readonly ContentPackage SelfPackage = ContentPackageManager.RegularPackages
-            .First(p => p.Name.ToLowerInvariant().Trim().StartsWith("hotkeyreload"));
+            .First(p => p.Name.ToLowerInvariant().Trim().StartsWith("hotkey reload"));
     
     private void RegisterConfig()
     {
@@ -48,14 +48,6 @@ public sealed class Bootloader : IAssemblyPlugin, IEventUpdate
 
     private void RegisterPatches()
     {
-        /*PatchManager.RegisterPatches(new List<PatchManager.PatchData>()
-        {
-            new PatchManager.PatchData(
-                AccessTools.Method(typeof(Barotrauma.LuaCsSetup), "Update"),
-                null,
-                new HarmonyMethod(AccessTools.Method(typeof(P_LuaCsSetup_Update), "Postfix"))
-                )
-        });*/
         EventService.Subscribe<IEventUpdate>(this);
     }
     
