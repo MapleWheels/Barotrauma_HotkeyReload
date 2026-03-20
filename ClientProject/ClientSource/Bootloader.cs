@@ -34,6 +34,7 @@ public sealed class Bootloader : IAssemblyPlugin, IEventUpdate
     //Injected
     public IConfigService ConfigService { get; set; }
     public IEventService EventService { get; set; }
+    public ILoggerService LoggerService { get; set; }
 
     private static readonly ContentPackage SelfPackage = ContentPackageManager.RegularPackages
             .First(p => p.Name.ToLowerInvariant().Trim().StartsWith("hotkey reload"));
@@ -50,11 +51,10 @@ public sealed class Bootloader : IAssemblyPlugin, IEventUpdate
     {
         EventService.Subscribe<IEventUpdate>(this);
     }
-    
-    
 
     public void Initialize()
     {
+        Util.LoggerService = this.LoggerService;
     }
 
     public void OnLoadCompleted()
@@ -69,6 +69,12 @@ public sealed class Bootloader : IAssemblyPlugin, IEventUpdate
 
     public void Dispose()
     {
+        EventService.Unsubscribe<IEventUpdate>(this);
+        
+        Util.LoggerService = null;
+        this.LoggerService = null;
+        this.ConfigService = null;
+        this.EventService = null;
     }
 
     public void OnUpdate(double fixedDeltaTime)

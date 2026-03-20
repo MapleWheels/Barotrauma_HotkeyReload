@@ -2,7 +2,7 @@
 <Configuration>
     <Settings>
         <Setting Name="KeybindReload" Type="control" Value="R"/>
-        <Setting Name="KeybindQuickLootAll" Type="control" Value="H"/>
+        <Setting Name="KeybindQuickLootAll" Type="control" Value="J"/>
         <Setting Name="KeybindQuickStackToPlayer" Type="control" Value="K"/>
         <Setting Name="KeybindQuickStackToStorage" Type="control" Value="L"/>
     </Settings>

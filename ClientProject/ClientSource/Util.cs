@@ -18,6 +18,8 @@ internal static class Util
         InvSlotType.InnerClothes,
         InvSlotType.OuterClothes
     };
+    
+    public static ILoggerService? LoggerService { get; set; }
 
     private static readonly Dictionary<string, System.Func<Item, Item, bool>> ConditionalRules = new ();
 
@@ -31,12 +33,12 @@ internal static class Util
              || GUI.KeyboardDispatcher.Subscriber is not null)
         {
 #if DEBUG
-            ModUtils.Logging.PrintMessage($"HotkeyReload.Util::CheckIfValidToInteract() | false");
+            LoggerService?.LogMessage($"HotkeyReload.Util::CheckIfValidToInteract() | false");
 #endif
             return false;
         }
 #if DEBUG
-        ModUtils.Logging.PrintMessage($"HotkeyReload.Util::CheckIfValidToInteract() | true");
+        LoggerService?.LogMessage($"HotkeyReload.Util::CheckIfValidToInteract() | true");
 #endif
         return true;
     }

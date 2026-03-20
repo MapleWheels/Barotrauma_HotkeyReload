@@ -2,7 +2,7 @@
     <PropertyGroup>
         <!-- IMPORTANT: Should point to <Barotrauma_Install>\LocalMods\<MyModName>\ -->
         <!-- IMPORTANT: ModDeplyDir Path must end with '\' -->
-        <ModDeployDir>.\..\..\LuaCsForBarotrauma\Deploy\bin\content\Windows\Client\LocalMods\HotkeyReload\</ModDeployDir>
+        <ModDeployDir>.\..\..\LuaCsForBarotrauma\Barotrauma\bin\ReleaseWindows\net8.0\LocalMods\HotkeyReload\</ModDeployDir>
         <!-- IMPORTANT: Avoid the use of special (IE: / : ; , \ < > ?) (periods "." are good) and non-english characters in the AssemblyName.-->
         <AssemblyName>HotkeyReload</AssemblyName>
     </PropertyGroup>
